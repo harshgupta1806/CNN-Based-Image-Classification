@@ -48,6 +48,7 @@ parser.add_argument('-k', '--layers_to_freeze', help="No. of Layers to freeze", 
 parser.add_argument('-o', '--optimizer', help = 'choices: ["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"]', type=str, default = 'adam', choices= ["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"])
 parser.add_argument('-lr', '--learning_rate', help = 'Learning rate used to optimize model parameters', type=float, default=0.0001)
 parser.add_argument('-m', '--momentum', help='Momentum used by momentum and nag optimizers.',type=float, default=0.9)
+parser.add_argument('-eval', '--evaluate', help='Evaluate model on test data',type=int, default=0, choices=[0, 1])
 arguments = parser.parse_args()
 
 
@@ -84,56 +85,81 @@ def load_data(batch_size,img_size, device):
 
     return labels , train_loader, val_loader, test_loader
 
-
 def freeze_layers(model, options, k):
+    """
+    Freeze specified layers of a neural network model.
+
+    Args:
+    - model (torch.nn.Module): The neural network model.
+    - options (str): Specifies which layers to freeze. Options: "start", "middle", or "end".
+    - k (int): Number of layers to freeze. For "start" and "end" options, k specifies the number of layers from the start or end respectively.
+
+    Raises:
+    - ValueError: If k is not within the valid range.
+
+    Returns:
+    - None
+    """
+
+    # Check if k is within the valid range
     if k < 0 or k >= len(list(model.named_children())):
-        raise ValueError(f"Invalid value of k. choose between 0 and {len(list(model.named_children()))-1}")
-    
+        raise ValueError(f"Invalid value of k. Choose between 0 and {len(list(model.named_children())) - 1}")
+
+
+# Freeze layers based on the specified option
+
+    # Freeze first k layers
     if options == "start":
-        layer_num = 0
-        for name, layer in model.named_children():
-            layer_num += 1
+        for layer_num, (name, layer) in enumerate(model.named_children(), 1):
             if layer_num <= k:
                 for p_name, param in layer.named_parameters():
                     param.requires_grad = False
-        
         print(f"Freezed First {k} Layer")
-    
+
+
+    # Freeze Middle layers
     elif options == "middle":
-        layer_num = 0
         total_layer = len(list(model.named_children()))
-        start_layer = total_layer // 2 - 3
-        end_layer = total_layer //2 + 3
-        for name, layer in model.named_children():
-            layer_num += 1
-            if start_layer <= layer_num < end_layer:
+        middle_layer = total_layer // 2  # Get the index of the middle layer
+        num_layers_to_freeze = k  # Number of layers to freeze around the middle layer
+
+        for layer_num, (name, layer) in enumerate(model.named_children(), 1):
+            if middle_layer - num_layers_to_freeze <= layer_num < middle_layer + num_layers_to_freeze:
                 for p_name, param in layer.named_parameters():
                     param.requires_grad = False
+
+        start_layer = middle_layer - num_layers_to_freeze
+        end_layer = middle_layer + num_layers_to_freeze
         print(f"Freeze middle layers from layer {start_layer} to {end_layer} and Train rest of the layers")
-        
+
+
+    # Freeze last k layers 
     elif options == "end":
         total_layers = len(list(model.named_children()))
-        start_layer = total_layers - k + 1
+        start_layer = total_layers - k
         end_layer = total_layers
-        layer_num = 0
-        for name, layer in model.named_children():
-            layer_num += 1
-            if start_layer <= layer_num < end_layer:
-                for p_name, param in layer.named_parameters():
-                    print(p_name)
-                    param.requires_grad = False
-        print(f"Freeze last {k} layers and Train rest of the layers")
         
+        for layer_num, (name, layer) in enumerate(model.named_children(), 1):
+            if start_layer <= layer_num <= end_layer:
+                for p_name, param in layer.named_parameters():
+                    param.requires_grad = False
+        
+        print(f"Freeze last {k} layers and Train rest of the layers")
+
+
+    # Freeze all layers (train only last layer)
     elif options == "freeze_all":
         total_layers = len(list(model.named_children()))
         curr_layers = 0
         for name, layer in model.named_children():
             if curr_layers < total_layers - 1:
                 for p_name, param in layer.named_parameters():
-                    print(p_name)
+                    # print(p_name)
                     param.requires_grad = False
             curr_layers += 1
-        print(f"Train only last layer and freeze all other layer")
+
+        print(f"Train only last layer and freeze all other layers")
+            
 
 
 def set_optimizer(model, opt_name, PARAM):
@@ -219,7 +245,27 @@ def load_model():
     model = model.to(device)
     return model
 
-
+## Function to Evaluate Model
+def calculate_accuracy_on_test_data(model, device):
+    labels, train_loader, val_loader, test_loader = load_data(1, 224, "No", device)
+    model.eval()  # Set model to evaluation mode
+    running_test_loss = 0.0  # Initialize running loss for validation
+    correct_pred = 0  # Initialize correct predictions counter for validation
+    total_pred = 0  # Initialize total samples counter for validation
+    criterion = nn.CrossEntropyLoss()
+    # Evaluate on validation set
+    with torch.no_grad():
+        for test_img, test_label in test_loader:
+            test_img = test_img.to(device)
+            test_label = test_label.to(device)
+            test_output = model(test_img)
+            loss_test = criterion(test_output, test_label)
+            running_test_loss += loss_test.item()
+            _, class_ = torch.max(test_output.data, 1)
+            total_pred += test_label.size(0)
+            correct_pred += (class_ == test_label).sum().item()
+    print(f"Test Accuracy : {100 * correct_pred / total_pred}%, Test Loss : {running_test_loss/len(test_loader)}")
+    return 100 * correct_pred / total_pred, running_test_loss/len(test_loader)
 
 PARAM = {
     "image_size" : 224,
@@ -235,5 +281,7 @@ PARAM = {
 }
 
 model = load_model()
-train_model(model, device, PARAM)
+model = train_model(model, device, PARAM)
+if arguments.evaluate == 1:
+    calculate_accuracy_on_test_data(model, device)
 

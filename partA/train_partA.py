@@ -25,23 +25,23 @@ warnings.filterwarnings("ignore")
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-wp' , '--wandb_project', help='Project name used to track experiments in Weights & Biases dashboard' , type=str, default='DL_Assignment2')
+parser.add_argument('-wp' , '--wandb_project', help='Project name used to track experiments in Weights & Biases dashboard' , type=str, default='DL-Assignment2')
 parser.add_argument('-we', '--wandb_entity' , help='Wandb Entity used to track experiments in the Weights & Biases dashboard.' , type=str, default='cs23m026')
 parser.add_argument('-d', '--datapath', help='give data path e.g. - \'D:/Deep_Learning_A2/nature_12K/inaturalist_12K\'', type=str, default='D:/Deep_Learning_A2/nature_12K/inaturalist_12K')
 parser.add_argument('-e', '--epochs', help="Number of epochs to train neural network.", type=int, default=10)
 parser.add_argument('-b', '--batch_size', help="Batch size used to train neural network.", type=int, default=32)
 parser.add_argument('-org', '--filter_org', help="Defines the organization of filter within Network", type=str, default="same", choices= ["same", "double", "half", "alternating_list", "d_alternating_list", "desc", "asc"])
-parser.add_argument('-f_s', '--filter_size', help="input list for filter size/kernel size for each layer e.g 11, 9, 7, 5, 3", type=int,  nargs='+', default=[11, 9, 7, 5, 3])
+parser.add_argument('-f_s', '--filter_size', help="input list for filter size/kernel size for each layer e.g 11, 9, 7, 5, 3", type=int,  nargs='+', default=[3, 3, 3, 3, 3])
 parser.add_argument('-f_n', '--filter_num', help="number of filter in first layer", type=int, default=64)
-parser.add_argument('-pfs', '--pool_filter_size', help="pool filter size", type=int, default=3)
-parser.add_argument('-dp', '--dropout', help="dropout in last layer", type=float, default=0.1)
-parser.add_argument('-aug', '--augmentation', help="Choices :: [Yes, No]", type=str, default="Yes", choices=["Yes", "No"])
-parser.add_argument('-norm', '--batch_norm', help="Choices :: [Yes, No]", type=str, default="No", choices= ["Yes", "No"])
-parser.add_argument('-img', '--image_size', help="Image Size e.g. 256 (Image Size = 256 X 256)", type=int, default=256)
-parser.add_argument('-c_p', '--conv_padding', help="Convolution layer padding", type=int, default=0)
-parser.add_argument('-c_s', '--conv_stride', help="Convolution Layer Stride", type=int, default=2)
+parser.add_argument('-pfs', '--pool_filter_size', help="pool filter size", type=int, default=2)
+parser.add_argument('-dp', '--dropout', help="dropout in last layer", type=float, default=0.3)
+parser.add_argument('-aug', '--augmentation', help="Choices :: [Yes, No]", type=str, default="No", choices=["Yes", "No"])
+parser.add_argument('-norm', '--batch_norm', help="Choices :: [Yes, No]", type=str, default="Yes", choices= ["Yes", "No"])
+parser.add_argument('-img', '--image_size', help="Image Size e.g. 256 (Image Size = 256 X 256)", type=int, default=224)
+parser.add_argument('-c_p', '--conv_padding', help="Convolution layer padding", type=int, default=1)
+parser.add_argument('-c_s', '--conv_stride', help="Convolution Layer Stride", type=int, default=1)
 parser.add_argument('-p_p', '--pool_padding', help="Pooling Layer padding", type=int, default=0)
-parser.add_argument('-p_s', '--pool_stride', help="Pooling Layer stride", type=int, default=1)
+parser.add_argument('-p_s', '--pool_stride', help="Pooling Layer stride", type=int, default=2)
 parser.add_argument('-o', '--optimizer', help = 'choices: ["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"]', type=str, default = 'adam', choices= ["sgd", "rmsprop", "adam", "nadam", "adagrad"])
 parser.add_argument('-lr', '--learning_rate', help = 'Learning rate used to optimize model parameters', type=float, default=0.0001)
 parser.add_argument('-m', '--momentum', help='Momentum used by momentum and nag optimizers.',type=float, default=0.9)
@@ -51,7 +51,8 @@ parser.add_argument('-ndl', '--neurons_fc', help='Number of neurons in dense lay
 parser.add_argument('-a', '--activation', help='choices: ["ReLU", "LeakyReLU", "GELU", "SiLU", "Mish"]', type=str, default='ReLU', choices=["ReLU", "LeakyReLU", "GELU", "SiLU", "Mish"])
 parser.add_argument('-p', '--console', help='print training_accuracy + loss, validation_accuracy + loss for every epochs', choices=[0, 1], type=int, default=1)
 parser.add_argument('-wl', '--wandb_log', help='log on wandb', choices=[0, 1], type=int, default=0)
-# parser.add_argument('-plt', '--plot_grid', help='plot grid of 10 X 3 of random images from test data', choices=[0, 1], type=int, default=0)
+parser.add_argument('-plt', '--plot_grid', help='plot grid of 10 X 3 of random images from test data', choices=[0, 1], type=int, default=0)
+parser.add_argument('-eval', '--evaluate', help='get test accuarcy and test loss', choices=[0, 1], type=int, default=0)
 arguments = parser.parse_args()
 
 
@@ -59,7 +60,7 @@ arguments = parser.parse_args()
 # if arguments.wandb_log == 1:
 #     wandb.login(key = '57566fbb0e091de2e298a4320d872f9a2b200d12')
 
-def load_data(batch_size, img_size, augmentation = "No"):
+def load_data(batch_size, img_size, augmentation = "No", device = "cpu"):
     """
     Function to appropriately load data.
 
@@ -330,7 +331,7 @@ def train_model(model, device, PARAM, console_log, wandb_log, return_model=0):
 
     # Initialize wandb project and set run name if wandb_log is enabled
     if wandb_log == 1:
-        wandb.init(project='DL-Assignment2')
+        wandb.init(project=arguments.wand_project)
         wandb.run.name = 'SAMPLE-RUN'
 
     # Set the loss function and optimizer
@@ -366,9 +367,9 @@ def train_model(model, device, PARAM, console_log, wandb_log, return_model=0):
             correct += (predicted == labels).sum().item()
 
             # For Debuging 
-            count += 1
-            if count % 5 == 0:
-                print(count, end=" | ")
+            # count += 1
+            # if count % 5 == 0:
+            #     print(count, end=" | ")
         # print("")
  
         model.eval() # Set model to evalution mode 
@@ -420,7 +421,167 @@ def train_model(model, device, PARAM, console_log, wandb_log, return_model=0):
         return model
     return 100 * correct_pred / total_pred
 
+## Function to evaluate model
+def calculate_accuracy_on_test_data(model, device):
+    labels, train_loader, val_loader, test_loader = load_data(1, 224, "No", device)
+    model.eval()  # Set model to evaluation mode
+    running_test_loss = 0.0  # Initialize running loss for validation
+    correct_pred = 0  # Initialize correct predictions counter for validation
+    total_pred = 0  # Initialize total samples counter for validation
+    criterion = nn.CrossEntropyLoss()
+    # Evaluate on validation set
+    with torch.no_grad():
+        for test_img, test_label in test_loader:
+            test_img = test_img.to(device)
+            test_label = test_label.to(device)
+            test_output = model(test_img)
+            loss_test = criterion(test_output, test_label)
+            running_test_loss += loss_test.item()
+            _, class_ = torch.max(test_output.data, 1)
+            total_pred += test_label.size(0)
+            correct_pred += (class_ == test_label).sum().item()
+    print(f"Test Accuracy : {100 * correct_pred / total_pred}%, Test Loss : {running_test_loss/len(test_loader)}")
+    return 100 * correct_pred / total_pred, running_test_loss/len(test_loader)
+
+
+############################### PLOTING GRID ###########################
+
+def generate_random_numbers():
+    """
+    Generate a list of random numbers.
+
+    Returns:
+        list: A list of random numbers.
+    """
+    numbers = []
+    for _ in range(10):
+        lower_bound = 200 * _
+        upper_bound = lower_bound + 199
+        group = [random.randint(lower_bound, upper_bound) for _ in range(3)]
+        numbers.extend(group)
+    return numbers
+
+def get_prediction(model, img, device):
+    """
+    Get predictions from a trained model for a given image.
+
+    Args:
+        model (torch.nn.Module): The trained neural network model.
+        img (torch.Tensor): Input image tensor.
+        device (torch.device): Device to run the model on (e.g., 'cuda' or 'cpu').
+
+    Returns:
+        tuple: A tuple containing the predicted probability and the predicted class index.
+    """
+    img = img.to(device)
+    model.eval()
+    with torch.no_grad():
+        pred = model(img)
+        prob, class_ = torch.max(pred.data, 1)
+    return prob, class_
+
+
+def predict_test_images(model, test_loader, label, device):
+    """
+    Predict labels for images in a test dataset using a trained model.
+
+    Args:
+        model (torch.nn.Module): The trained neural network model.
+        test_loader (torch.utils.data.DataLoader): DataLoader for the test dataset.
+        label (list): List of class labels corresponding to class indices.
+        device (torch.device): Device to run the model on (e.g., 'cuda' or 'cpu').
+
+    Returns:
+        float: The accuracy of the predictions.
+    """
+    total = 0
+    count = 0
+    for image, lbl in test_loader:
+        print("Index:", total, end="  ")
+        image = image.to(device)
+        lbl = lbl.to(device)
+        print("True Label:", label[lbl.item()], end=" | ")
+        prob, pred = get_prediction(model, image, device)
+        print("Predicted Label:", label[pred.item()])
+        if pred == lbl:
+            count += 1
+        total += 1
+    accuracy = count / total if total != 0 else 0
+    print(f"Accuracy: {accuracy}")
+    return accuracy
+
         
+def plot_grid(model, device, wandb_log=0, console_log=1):
+    """
+    Plot a grid of images with their true and predicted labels.
+
+    Args:
+        model (torch.nn.Module): The trained neural network model.
+        device (torch.device): Device to run the model on (e.g., 'cuda' or 'cpu').
+        wandb_log (int, optional): Flag to log the plot to Weights & Biases. Defaults to 0.
+        console_log (int, optional): Flag to print additional information to the console. Defaults to 1.
+
+    Returns:
+        int: Total count of correctly predicted images.
+    """
+
+    # Load data
+    label, train_loader, val_loader, test_loader = load_data(1, 224, device= device)
+
+    # Generate random indices for selecting images
+    random_index = generate_random_numbers()
+    print(random_index)
+    
+    # Initialize variables
+    index = 0
+    total = 0
+    fig, axes = plt.subplots(10, 3, figsize=(10, 30))
+    count = 0
+
+    # Iterate through test dataset
+    for image, lbl in test_loader:
+        # Check if the current index is in the random indices
+        if index in random_index:
+            image = image.to(device)
+            lbl = lbl.to(device)
+            lbl.to(int)
+            row = count // 3  # Calculating row index for subplot
+            col = count % 3   # Calculating column index for subplot
+            # Get prediction for the image
+            prob, pred = get_prediction(model, image, device)
+            # Convert image tensor to numpy array and rearrange dimensions for display
+            image = image.cpu().squeeze().permute(1, 2, 0)
+
+            # Display image
+            axes[row, col].imshow(image)
+            # Set title with true label
+            axes[row, col].set_title(label[lbl], fontsize=14, fontweight='bold', color='blue', family='serif', loc='center', pad=8)
+            axes[row, col].axis('off')  # Turn off axis
+            # Check if prediction is correct and annotate with predicted label
+            if pred == lbl:
+                total += 1
+                axes[row, col].text(0.5, -0.08, label[pred], fontweight='bold', horizontalalignment='center', verticalalignment='center', fontsize=14, color='green', family='serif', transform=axes[row, col].transAxes)
+            else:
+                axes[row, col].text(0.5, -0.08, label[pred], fontweight='bold', horizontalalignment='center', verticalalignment='center', fontsize=14, color='red', family='serif', transform=axes[row, col].transAxes)
+            count += 1
+        index += 1
+    plt.figtext(0.5, 0, f"Total correctly predicted images: {total}/30", ha='center', fontsize=14, va = 'center', color = 'black', family = 'serif', fontweight = 'bold')
+    plt.subplots_adjust(hspace=0.4)  # Adjust spacing between subplots
+    plt.tight_layout()  # Adjust layout to prevent overlapping
+    
+    for spine in plt.gca().spines.values():
+        spine.set_edgecolor('black')
+        spine.set_linewidth(2)
+
+    # Log plot to Weights & Biases if enabled
+    if wandb_log == 1:
+        wandb.init(project=arguments.wandb_project, name='PartA Q4: Grid 10 X 3')
+        wandb.log({'Grid 10 X 3': wandb.Image(plt)})
+        wandb.finish()
+
+    # Display the plot
+    if console_log == 1:
+        plt.show()
 
 PARAM = {
     "con_layers" : 5,
@@ -465,3 +626,7 @@ print("Currently Using :: ", device)  # Printing the currently used device
 model = ConvolutionalNeuralNetwork(PARAM)
 model = model.to(device)
 net = train_model(model, device, PARAM, arguments.console, arguments.wandb_log, 1)
+if arguments.plot_grid == 1:
+    plot_grid(net, device, wandb_log=arguments.wandb_log, console_log=arguments.console)
+if arguments.evaluate == 1:
+    calculate_accuracy_on_test_data(net, device)
