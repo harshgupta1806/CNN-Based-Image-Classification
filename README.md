@@ -8,7 +8,7 @@ This script trains a Convolutional Neural Network (CNN) on a given dataset using
 
 ### Usage
 
-1. Prepare your dataset and update the `datapath` argument.
+1. Prepare your dataset and update the `datapath` argument before running script.
 
 2. Execute the training script with desired configurations:
 
