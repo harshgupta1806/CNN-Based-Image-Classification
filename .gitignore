@@ -6,3 +6,5 @@ partA/requirements.txt
 partA/wandb/
 partB/imagenet_classes.txt
 wandb/
+partB/PartB_F.ipynb
+partB/partB copy.ipynb
