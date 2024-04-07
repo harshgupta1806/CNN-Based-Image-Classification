@@ -44,6 +44,7 @@ The script accepts the following arguments:
 | -a / --activation | set activation function, default : ReLU, Choices : ReLU, LeakyReLU, Mish, GELU, SiLU|
 | -p / --console           | Whether to log training metrics on console. Options: 1 (Yes), 0 (No). Default is 1.                                |
 | -wl / --wandb_log       | Whether to log training metrics on console. Options: 1 (Yes), 0 (No). Default is 1.|
+| -eval / --evaluate| Evaluate the Model on test data, Choices [0 : Do not Compute Accuracy, 1 : Comput Accuracy & Loss] , default : 0
 
 ### ConvolutionalNeuralNetwork Class
 
@@ -88,6 +89,7 @@ python train_partA.py -d ../path/to/dataset -e 3 --b 64 -org same -f_s 11 9 7 5 
 | -m / --momentum      | Momentum (beta) for the optimizer (only applicable for SGD, rmsprop)  | 0.9                                                  |
 | -lr / --learning_rate   | Learning rate for the optimizer  | 0.001   |
 | -bs / --batch_size| Batch size for training | 32   |
+| -eval / --evaluate| Evaluate the Model on test data, Choices [0 : Do not Compute Accuracy, 1 : Comput Accuracy & Loss] | 0   |
 
 ### Methods Description
 
