@@ -279,7 +279,7 @@ PARAM = {
     "k" : arguments.layers_to_freeze,
     "momentum" : arguments.momentum
 }
-
+# ****** *********
 model = load_model()
 model = train_model(model, device, PARAM)
 if arguments.evaluate == 1:
