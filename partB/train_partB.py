@@ -247,7 +247,7 @@ def load_model():
 
 ## Function to Evaluate Model
 def calculate_accuracy_on_test_data(model, device):
-    labels, train_loader, val_loader, test_loader = load_data(1, 224, "No", device)
+    labels, train_loader, val_loader, test_loader = load_data(1, 224, device)
     model.eval()  # Set model to evaluation mode
     running_test_loss = 0.0  # Initialize running loss for validation
     correct_pred = 0  # Initialize correct predictions counter for validation

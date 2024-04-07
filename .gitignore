@@ -3,7 +3,6 @@ partA/FILE.ipynb
 partA/PartA copy.ipynb
 partA/data/
 partA/requirements.txt
-partA/train.py
 partA/wandb/
 partB/imagenet_classes.txt
 wandb/
